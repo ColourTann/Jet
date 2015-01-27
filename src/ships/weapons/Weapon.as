@@ -1,27 +1,30 @@
 package ships.weapons 
 {
 	import flash.media.Sound;
+	import ships.Ship;
 	/**
 	 * ...
 	 * @author ...
 	 */
 	public class Weapon 
 	{
-		internal var shotAvailable:Number = 0;
-		internal var shotCooldown:Number;
-		internal var sound:Sound;
-		public function Weapon(cooldown:Number, sound:Sound) 
+		protected var shotAvailable:Number = 0;
+		protected var shotCooldown:Number;
+		protected var sound:Sound;
+		protected var ship:Ship
+		public function Weapon(cooldown:Number, sound:Sound, ship:Ship) 
 		{
 			this.shotCooldown = cooldown;
 			this.sound = sound;
+			this.ship = ship;
 		}
-		public function fire() {
+		public function fire():void {
 		
 		}
-		internal function canFire():Boolean {
+		protected function canFire():Boolean {
 			return shotAvailable <= 0;
 		}
-		internal function update(delta:Number):void {
+		public function update(delta:Number):void {
 			shotAvailable-= delta;
 		}
 	}

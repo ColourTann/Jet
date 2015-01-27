@@ -18,6 +18,7 @@ package
 			y = Math.random() * Main.stageHeight;
 			var cloudImage:Bitmap = new embed();
 			addChild(cloudImage);
+			alpha = .5;
 			
 		}
 		

@@ -24,6 +24,10 @@ package maths
 			return new Pair (x / magnitude, y / magnitude);
 		}
 		
+		public function subtract(otherPair:Pair):Pair {
+			return new Pair(x - otherPair.x, y - otherPair.y);
+		}
+		
 		public function add(otherPair:Pair):Pair {
 			return new Pair(x + otherPair.x, y + otherPair.y);
 		}
@@ -40,6 +44,10 @@ package maths
 			var xDiff:Number = x - otherPair.x;
 			var yDiff:Number = y - otherPair.y;
 			return Math.sqrt(xDiff * xDiff + yDiff * yDiff);
+		}
+		
+		public function getAngle():Number {
+			return Math.atan2(-y, x);
 		}
 		
 		public static function getMagnitudeInDirection(direction:Pair, speed:Pair):Number {

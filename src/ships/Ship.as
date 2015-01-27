@@ -1,12 +1,14 @@
 package ships 
 {
 	import flash.display.Bitmap;
+	import flash.display.ColorCorrection;
 	import flash.display.Sprite;
+	import flash.geom.ColorTransform;
 	import flash.media.Sound;
 	import io.arkeus.ouya.controller.Xbox360Controller;
 	import maths.Collider;
 	import maths.Pair;
-	import ships.weapons.Bullet;
+	import maths.Utility;
 	import ships.weapons.Projectile;
 	import ships.weapons.Weapon;
 	/**
@@ -15,67 +17,64 @@ package ships
 	 */
 	public class Ship extends Sprite
 	{
-		[Embed(source="../../assets/hull.png")]
-		public static var playerHull:Class;
-		[Embed(source="../../assets/leftwing.png")]
-		public static var leftwingpic:Class;
-		[Embed(source="../../assets/rightwing.png")]
-		public static var rightwingpic:Class;
 		
-		[Embed(source="../../assets/shotgun.mp3")]
-		public static var shotgunSoundFile:Class;
-		internal var shotgunSound:Sound = new shotgunSoundFile() as Sound;
+		
+		public static var colArray:Array = [63,63,116,118,66,138,143,86,59,75,105,47];
+	
 		
 		[Embed(source = "../../assets/explode.mp3")]
 		public static var explodeSoundFile:Class;
-		internal var explodeSound:Sound = new explodeSoundFile() as Sound;
 		
+		protected var explodeSound:Sound = new explodeSoundFile() as Sound;
+		protected var trails:Array = new Array();
+		protected var hull:Bitmap;
+		protected var leftwing:Bitmap;
+		protected var rightwing:Bitmap;
+	
+		//sound//
 		[Embed(source = "../../assets/boost.mp3")]
 		public static var boostSoundFile:Class;
-		internal var boostSound:Sound = new boostSoundFile() as Sound;
-		
-		internal var hull:Bitmap;
-		internal var leftwing:Bitmap;
-		internal var rightwing:Bitmap;
+		protected var boostSound:Sound = new boostSoundFile() as Sound;
 		
 		//constants//
-		internal var turnSpeed:Number = 4; //turning speed//
+		protected var power:Number = 300; //accel//
+		protected var drag:Number = .2; 
+		protected var gravity:Number = 250; 
 		
-		internal var power:Number = 300; //throttle factor//
-	
-
-		internal var drag:Number = .2; 
-		internal var gravity:Number = 250; 
-		internal var boostCooldown:Number = 1;
-		internal var boost:Number = 700;
+		//boost//
+		protected var boostCooldown:Number = 1;
+		protected var boostPower:Number = 700;
+		protected var boostAvailable:Number = 0;
 		
-		internal var boostAvailable:Number = 0;
+		//movement//
 		public var angle:Number = 1.55;
-		internal var velocity:Number = 0;
-		
-		internal var currentSpeed:Number = 0;
-		internal var engineEngaged:Boolean = true;
+		protected var velocity:Number = 0;
+		protected var currentSpeed:Number = 0;
+		protected var engineEngaged:Boolean = true;
 		public var vector:maths.Pair = new maths.Pair(0, 0);
-		internal var trails:Array = new Array();
-		internal var enginePower:Number = 0;
+		protected var enginePower:Number = 0;
+		protected var shipWidth:Number = 20;
 		
-		internal var shipWidth:Number = 20;
+		protected var weapons:Array = new Array();
 		
-		internal var collider:Collider;
-		
-		internal var bullets:Vector.<Projectile> = new Vector.<Projectile>();
+		protected var collider:Collider;
 		public var dead:Boolean = false;
-		internal var shotCooldown:Number = .8;
-		internal var shotAvailable:Number = 0;
+		public var disposed:Boolean = false;
 		public var invincible:Number = 0;
-		internal var deathCounter:Number = 0;
-		internal var weapons:Array = new Array();
-		public function Ship() 
+		protected var deathCounter:Number = 0;
+		
+		public var controller:Xbox360Controller;
+		public var ID:int;
+		public var markedForSwitching:Boolean;
+		public var score:Score;
+		
+		public function Ship(controller:Xbox360Controller, ahull:Bitmap, arightWing:Bitmap, aleftWing:Bitmap ) 
 		{
-			
+			this.controller = controller;
 			collider = new Collider(10);
-			
-			
+			if (Main.debugColliders) {
+				Main.map.addChild(collider);
+			}
 			for (var i:int = 0; i < 3; i++) {
 				var tail:Sprite = new Sprite();
 				tail.graphics.beginFill(0xDEEED6);
@@ -85,8 +84,8 @@ package ships
 				tail.alpha = .5 + i * .25;
 				trails.push(tail);
 			}
-			for (var i:int = 0; i < 3; i++) {
-				var tail:Sprite = new Sprite();
+			for (i = 0; i < 3; i++) {
+				tail= new Sprite();
 				tail.graphics.beginFill(0xDEEED6);
 				tail.graphics.drawRect(0, 0, 1, 1);
 				tail.x = -15;
@@ -98,84 +97,137 @@ package ships
 			for each (var t:Sprite in trails) {
 				addChild(t);
 			}
-			//var bgshape :Sprite= new Sprite();
-			//bgshape.graphics.beginFill(0x597DCE);
-			//bgshape.graphics.drawRect(0,0,stage.stageWidth, stage.stageHeight);
+		
+			hull = ahull;
+			rightwing = arightWing;
+			leftwing = aleftWing;
+
 			
-			x = 200;
-			y = 200
-			hull = new playerHull();
-			leftwing = new leftwingpic();
-			rightwing = new rightwingpic();
 			hull.x = -hull.width/2;
 			hull.y = -hull.height / 2;
-			
-			
 			addChild(hull); 
 			addChild(leftwing);
 			addChild(rightwing);
-			
 			scaleX = 1;
 			scaleY = 1;
 			
+			tint(hull);
+			tint(leftwing);
+			tint(rightwing);
+			
+			
+		}
+		
+		public function addKill():void {
+			if (score != null) {
+				score.addKill();
+			}
+		}
+		
+		public function startMatch():void {
+			respawn();
+			addScore();
+		}
+		
+		private function respawn():void {
+			
+			if (Main.isPaused()) {
+				return;
+			}
+			trace("respawning");
+			alreadyDead = false;
+			deathCounter = 0;
+			dead = false;
+			invincible = 1;
+			if (ID %2== 0) {
+				x = Main.stageWidth / 4;
+			}
+			else {
+				x = Main.stageWidth * 3 / 4;
+			}
+			if (ID == 0 || ID == 3) {
+				y = Main.stageHeight / 4;
+			}
+			else {
+				y = Main.stageHeight * 3 / 4;
+			}
+		}
+		
+		private function addScore():void {
+			
+			score = new Score(this, colArray[ID * 3], colArray[ID * 3 + 1], colArray[ID * 3 + 2]);
+			Main.map.addChild(score);
+			
+		}
+		
+		private function tint(s:Bitmap):void {
+			s.transform.colorTransform = new ColorTransform(colArray[ID * 3] / 255, colArray[ID * 3 + 1] / 255, colArray[ID * 3 + 2] / 255, 1, 0, 0, 0, 0);
+			respawn();
 		}
 		
 		
 		
+		public function setPlayerID(ID:int):void {
+			this.ID = ID;
+			tint(hull);
+			tint(leftwing);
+			tint(rightwing);
+			
+			
+		}
+		
 		public function update(delta:Number):void {
-			if (dead) return;
-			if(deathCounter>0){
-				deathCounter -= delta;
-				if (deathCounter <= 0) {
-					//alpha = 1;
-					dead = false;
-					
+			if (dead) {
+				if(!disposed){
+					dispose(false);
 				}
 				return;
 			}
-			
-			collider.position.x = x;
-			collider.position.y = y;
+			if (checkDeath(delta)) return;
 			input(delta);
 			movement(delta);
-			updateBullets(delta);
-			setWings();
-			boostAvailable-= delta;
-			shotAvailable-= delta;
-			if (invincible > 0) {
-				invincible-= delta;	
-				alpha = .5;
+			updateSpecial(delta)
+			updateDeath(delta);
+			updateWeapons(delta);
+			updateCollider();
+			updateGraphics();
+		}
+		
+		protected function checkDeath(delta:Number):Boolean {
+			if (dead) return true;
+			if (deathCounter > 0) {
+				if (Main.isPaused()) {
+					return true;
+				}
+				deathCounter -= delta;
+				if (deathCounter <= 0) {
+					respawn();
+				}
+				return true;
 			}
-			else {
-				alpha = 1;
+			
+			return false;
+		}
+		
+		protected function input(delta:Number):void {
+			if (controller.leftStick.distance > .5) {
+				angle = Utility.lerpAngle(angle, controller.leftStick.angle, .2);
 			}
 			
-		}
-		
-		internal function input(delta:Number):void {
-		}
-		
-		internal var stallTimer:Number = 0;
-		
-		internal function stall():void {
-			velocity = 0;
-			engineEngaged = false;
-		}
-		
-		internal function engage():void {
-			if (boostAvailable > 0) return;
-			boostAvailable = boostCooldown;
-			boostSound.play();
-			enginePower = 5;
-			engineEngaged = true;
-			//velocity = Pair.getMagnitudeInDirection(Pair.unitAngle(angle), vector);
-			//velocity = Pair.average(Pair.unitAngle(angle).multiplySingle(velocity), vector).getMagnitude();
-			velocity = vector.getMagnitude()+boost;
+			checkSpecials(delta);
 			
+			if (controller.a.held) {
+				weapons[0].fire();
+			}
+			if (controller.x.held) {
+				weapons[1].fire();
+			}
+			if (controller.lb.pressed||controller.rb.pressed) {
+				markedForSwitching = true;
+			}
 		}
 		
-		internal function movement(delta:Number):void {
-			
+		protected function movement(delta:Number):void {
 			if(engineEngaged){
 				velocity += delta * power;
 				velocity -= Math.sin(angle) * delta * gravity;
@@ -191,34 +243,42 @@ package ships
 				vector.y += gravity * delta;
 				vector = vector.multiplySingle(Math.pow(drag, delta));	
 			}
-			
-			
 			x += vector.x * delta;
 			y += vector.y * delta;
 			currentSpeed = vector.getMagnitude();
 			
 			//wraparound//
-			
-			if (x > stage.stageWidth+ shipWidth) x = -shipWidth;
-			if (x < -shipWidth) x = stage.stageWidth+ shipWidth;
-			if (y > stage.stageHeight + shipWidth) y = -shipWidth;
-			if (y < -shipWidth) y = stage.stageHeight+ shipWidth;
-			
+			if (x > stage.stageWidth+ shipWidth) x  -=(Main.stageWidth+shipWidth);
+			if (x < -shipWidth) x += stage.stageWidth+ shipWidth;
+			if (y > stage.stageHeight + shipWidth) y -= (Main.stageHeight+shipWidth);
+			if (y < -shipWidth) y += stage.stageHeight+ shipWidth;
 		}
 		
-		internal function updateBullets(delta:Number) {
-
-			for (var i:int = bullets.length - 1; i >= 0; i--) {
-				var b:Projectile = bullets[i];
-				b.update(delta);
-				if (b.dead) {
-					bullets.splice(i, 1);
-				}
-				
+		protected function updateSpecial(delta:Number):void {
+			boostAvailable-= delta;
+		}
+		
+		protected function updateDeath(delta:Number):void {
+			if (invincible > 0) {
+				invincible-= delta;	
+				alpha = .5;
+			}
+			else {
+				alpha = 1;
 			}
 		}
 		
-		internal function setWings():void {
+		protected function updateWeapons(delta:Number):void {
+			for each (var w:Weapon in weapons) {
+				w.update(delta);
+			}
+		}
+		
+		protected function updateCollider():void {
+			collider.setPosition(x, y);
+		}
+		
+		protected function updateGraphics():void {
 			//UGH : ( //
 			rotation = -angle * 57.3;			
 			var wingspan:Number = Math.abs(Math.abs(rotation)) / 90 + .05;
@@ -230,50 +290,56 @@ package ships
 			leftwing.x = -leftwing.width / 2;
 			rightwing.y = -leftwing.height / 2;
 			leftwing.y = -leftwing.height / 2;
-			
 			if(engineEngaged){
-			enginePower += (1 - enginePower) * .1;
+				enginePower += (1 - enginePower) * .1;
 			}
 			else {
 				enginePower += (0 - enginePower) * .3;
 			}
-			
-			
-			
-			
 			for (var i:int = 0; i < 3; i++) {
 				var base:Number = -5 - i * 2;
 				var variance:Number = -Math.random() * (i + 1);
 				var power:Number = (base+variance) * enginePower;
-					trails[i].scaleX = power
-					trails[trails.length - 1 - i].scaleX = power;
+				trails[i].scaleX = power
+				trails[trails.length - 1 - i].scaleX = power;
 			}
 			trails[3].scaleX = trails[2].scaleX;
-			
+		}
+		
+		
+		protected function checkSpecials(delta:Number):void {
+			//override me//
 		}
 		
 		
 		public function getFrontX(dist:int):Number {
-			return x + Math.sin(angle) * dist;
+			return x + Math.cos(angle) * dist;
 		}
 		public function getFrontY(dist:int):Number {
-			return y + Math.cos(angle) * dist;
+			return y - Math.sin(angle) * dist;
 		}
 		public function getCollider():Collider {
 			return collider;
 		}
-		public function destroy():void {
+		public var alreadyDead:Boolean;
+		
+		public function destroy(playSound:Boolean):void {
 			if (dead) return;
-			dead = true;
-			dispose();
+			alreadyDead = true;
+			deathCounter = 1.8;
+			alpha = 0;
+			if (playSound) explodeSound.play();
+			
 		}
-		public function dispose():void {
+		public function dispose(playSound:Boolean):void {
+			dead = true;
+			disposed = true;
 			Main.map.removeChild(this);
-			explodeSound.play();
+			if(playSound)explodeSound.play();
 		}
 		
-		public function setWeapon(weapon:Weapon, button:int) {
-			weapons[int] = weapon;
+		public function setWeapon(weapon:Weapon, button:int):void {
+			weapons[button] = weapon;
 		}
 	}
 

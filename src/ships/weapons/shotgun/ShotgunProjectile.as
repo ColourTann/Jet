@@ -13,23 +13,15 @@ package ships.weapons.shotgun
 		public static var bulletGraphic:Class;
 		public function ShotgunProjectile(ship:Ship) 
 		{
-			super(ship, 4, new bulletGraphic());
-			randomiseAngle(.6);
-			multiplyVector(Pair.getMagnitudeInDirection(ship.vector, Pair.unitAngle(ship.angle)) + 700 + Math.random() * 300);
+			super(ship, 4, .5+(Math.random()-.5)*.3, new bulletGraphic());
+			randomiseAngle(.7);
+			multiplyVector(Pair.getMagnitudeInDirection(ship.vector, Pair.unitAngle(ship.angle)) + 600 + Math.random() * 300);
+		}
+		protected override function advancedMove(delta:Number):void {
+			vector = vector.multiplySingle(.85);
 		}
 		
-		override public function fire() {
-			if (shotAvailable > 0) {
-				return;
-			}
-			shotAvailable = shotCooldown;
-			sound.play();
-			for (var i:int = 0; i < 10;i++){
-				var b:Projectile=new ShotgunProjectile(this);
-				bullets.push(b);
-				Main.map.addChild(b);
-			}
-		}
+		
 		
 	}
 
