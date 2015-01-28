@@ -14,7 +14,7 @@ package ships.weapons.sniper
 		public function SniperProjectile(ship:Ship) 
 		{
 			super(ship, 8, .7, new bulletGraphic());
-			multiplyVector(1100);
+			multiplyVector(1220);
 			rotation = Utility.rad2Deg(-angle);
 		}
 		

@@ -14,11 +14,13 @@ package ships.weapons.homer
 	[Embed(source = "../../../../assets/homer.mp3")]
 	public static var homerSoundFile:Class;	
 	
+	
+	
 	private static var range:Number = 300;
 	
 		public function Homer(ship:Ship) 
 		{
-			super(2, new homerSoundFile() as Sound, ship);
+			super(.8, 2, new homerSoundFile() as Sound, ship);
 		}
 		
 		override public function fire():void {
@@ -39,6 +41,7 @@ package ships.weapons.homer
 			}
 			if(fired){
 				shotAvailable = shotCooldown;
+				ship.spend(cost);
 				sound.play();
 			}
 		}

@@ -14,12 +14,13 @@ package ships.weapons.uzi
 		public static var uziSoundFile:Class;
 		public function Uzi(ship:Ship) 
 		{
-			super(.1, new uziSoundFile() as Sound, ship);
+			super(.1, .1, new uziSoundFile() as Sound, ship);
 		}
 		override public function fire():void {
 			if (!canFire()) {
 				return;
 			}
+			ship.spend(cost);
 			shotAvailable = shotCooldown;
 			sound.play();
 			for (var i:int = 0; i < 1;i++){

@@ -14,13 +14,14 @@ package ships.weapons.sniper
 		public static var sniperSoundFile:Class;
 		public function Sniper(ship:Ship) 
 		{
-			super(.5, new sniperSoundFile() as Sound, ship);
+			super(.3, .45, new sniperSoundFile() as Sound, ship);
 		}
 		
 		override public function fire():void {
 			if (!canFire()) {
 				return;
 			}
+			ship.spend(cost);
 			shotAvailable = shotCooldown;
 			sound.play();
 			for (var i:int = 0; i < 1;i++){

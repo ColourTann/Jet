@@ -53,7 +53,7 @@ package ships
 		protected var engineEngaged:Boolean = true;
 		public var vector:maths.Pair = new maths.Pair(0, 0);
 		protected var enginePower:Number = 0;
-		protected var shipWidth:Number = 20;
+		public static var shipWidth:Number = 20;
 		
 		protected var weapons:Array = new Array();
 		
@@ -67,6 +67,9 @@ package ships
 		public var ID:int;
 		public var markedForSwitching:Boolean;
 		public var score:Score;
+		
+		
+		protected var energy:EnergyBar = new EnergyBar();
 		
 		public function Ship(controller:Xbox360Controller, ahull:Bitmap, arightWing:Bitmap, aleftWing:Bitmap ) 
 		{
@@ -114,7 +117,7 @@ package ships
 			tint(hull);
 			tint(leftwing);
 			tint(rightwing);
-			
+			//Main.map.addChild(energy);
 			
 		}
 		
@@ -126,6 +129,10 @@ package ships
 		
 		public function startMatch():void {
 			respawn();
+			if (score != null) {
+					score.reset();
+			}
+			
 			addScore();
 		}
 		
@@ -134,6 +141,7 @@ package ships
 			if (Main.isPaused()) {
 				return;
 			}
+			Main.map.addChild(energy);
 			trace("respawning");
 			alreadyDead = false;
 			deathCounter = 0;
@@ -191,6 +199,9 @@ package ships
 			updateWeapons(delta);
 			updateCollider();
 			updateGraphics();
+			
+			energy.setLocation(x, y);
+			energy.gainEnergy(delta/2);
 		}
 		
 		protected function checkDeath(delta:Number):Boolean {
@@ -328,18 +339,34 @@ package ships
 			alreadyDead = true;
 			deathCounter = 1.8;
 			alpha = 0;
+			
 			if (playSound) explodeSound.play();
+			
+			if (Main.map.contains(energy)) {
+				Main.map.removeChild(energy);		
+			}
 			
 		}
 		public function dispose(playSound:Boolean):void {
 			dead = true;
 			disposed = true;
+			if (Main.map.contains(energy)) {
+				Main.map.removeChild(energy);		
+			}
 			Main.map.removeChild(this);
 			if(playSound)explodeSound.play();
 		}
 		
 		public function setWeapon(weapon:Weapon, button:int):void {
 			weapons[button] = weapon;
+		}
+		
+		public function getEnergy():Number {
+			return energy.getEnergy();
+		}
+		
+		public function spend(cost:Number):void {
+			energy.spend(cost);
 		}
 	}
 

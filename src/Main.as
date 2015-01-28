@@ -13,6 +13,7 @@ package
 	import flash.display.StageDisplayState;
 	import flash.display.StageScaleMode;
 	import ships.Hopper;
+	import ships.HopperTrail;
 	import ships.Ship;
 	import ships.Zipper;
 	import ships.weapons.Projectile;
@@ -161,6 +162,9 @@ package
 					startMatch();
 				}
 			}
+			
+			
+			HopperTrail.updateTrails(delta);
 			
 			for (var i:int = wisps.length - 1; i >= 0; i--) {
 				var w:TextWisp = wisps[i];

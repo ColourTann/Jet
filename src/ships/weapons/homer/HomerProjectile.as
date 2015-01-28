@@ -1,5 +1,6 @@
 package ships.weapons.homer 
 {
+	import flash.display.Sprite;
 	import maths.Pair;
 	import maths.Utility;
 	import ships.Hopper;
@@ -13,7 +14,7 @@ package ships.weapons.homer
 	{
 		[Embed(source = "../../../../assets/homer.png")]
 		public static var homerGraphic:Class;
-		
+		private static var speed:Number = 250;
 		
 		private var target:Ship;
 		public function HomerProjectile(source:Ship, target:Ship, direction:int) 
@@ -22,7 +23,6 @@ package ships.weapons.homer
 			this.target = target;
 			angle+= Math.PI / 2 * direction;
 			vector = Pair.unitAngle(angle);
-			multiplyVector(200);
 			rotation = Utility.rad2Deg(vector.getAngle());
 			playDeathSound = false;
 			destroyOnHit = true;
@@ -41,7 +41,7 @@ package ships.weapons.homer
 				angle = Utility.addAngle(angle, targetAngle, .1);
 			}
 			vector = Pair.unitAngle(angle);
-			multiplyVector(200);			
+			multiplyVector(speed);			
 			rotation = Utility.rad2Deg( -angle);
 			
 		}

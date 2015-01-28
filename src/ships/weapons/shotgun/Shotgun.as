@@ -14,13 +14,14 @@ package ships.weapons.shotgun
 		public static var shotgunSoundFile:Class;
 		public function Shotgun(ship:Ship) 
 		{
-			super(.8, new shotgunSoundFile() as Sound, ship);
+			super(.45, .5, new shotgunSoundFile() as Sound, ship);
 		}
 		
 		override public function fire():void {
 			if (!canFire()) {
 				return;
 			}
+			ship.spend(cost);
 			shotAvailable = shotCooldown;
 			sound.play();
 			for (var i:int = 0; i < 10;i++){

@@ -44,6 +44,9 @@ package
 			alpha = 1;
 		}
 		
+		public function reset():void {
+			kills = 0;
+		}
 		
 		public function addKill():void {
 			
